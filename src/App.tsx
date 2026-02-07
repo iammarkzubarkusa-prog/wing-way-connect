@@ -25,6 +25,11 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminShipments from "./pages/admin/AdminShipments";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AgentAuth from "./pages/agent/AgentAuth";
+import AgentLayout from "./pages/agent/AgentLayout";
+import AgentDashboard from "./pages/agent/AgentDashboard";
+import AgentShipments from "./pages/agent/AgentShipments";
+import AgentScan from "./pages/agent/AgentScan";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +63,12 @@ const App = () => (
               <Route path="shipments" element={<AdminShipments />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="users" element={<AdminUsers />} />
+            </Route>
+            <Route path="/agent/login" element={<AgentAuth />} />
+            <Route path="/agent" element={<AgentLayout />}>
+              <Route index element={<AgentDashboard />} />
+              <Route path="shipments" element={<AgentShipments />} />
+              <Route path="scan" element={<AgentScan />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

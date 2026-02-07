@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, QrCode, ScanLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import QRGenerator from "@/components/qr/QRGenerator";
+import QRScanner from "@/components/qr/QRScanner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const shipmentStatuses = [
   "pending", "pickup_scheduled", "picked_up", "in_transit", 
@@ -23,6 +26,9 @@ export default function AdminShipments() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedShipment, setSelectedShipment] = useState<any>(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
   const { toast } = useToast();
 
   const filtered = shipments.filter(s => {
@@ -38,24 +44,17 @@ export default function AdminShipments() {
     setUpdating(id);
     try {
       await updateShipmentStatus(id, newStatus);
-      
-      // Add timeline entry
       await supabase.from('shipment_timeline').insert({
         shipment_id: id,
         status: newStatus,
         description: `Status updated to ${statusLabels[newStatus]}`,
         is_current: true,
       });
-
-      // Try to send email notification
       try {
         await supabase.functions.invoke('notify-status-change', {
           body: { shipmentId: id, newStatus, trackingId },
         });
-      } catch (e) {
-        console.log('Email notification skipped:', e);
-      }
-
+      } catch (e) { console.log('Email notification skipped:', e); }
       toast({ title: "Status Updated", description: `${trackingId} → ${statusLabels[newStatus]}` });
     } catch (e: any) {
       toast({ title: "Update Failed", description: e.message, variant: "destructive" });
@@ -64,44 +63,84 @@ export default function AdminShipments() {
     }
   };
 
+  const fetchAgents = async () => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'agent')
+      .eq('is_approved', true);
+    if (data) {
+      const userIds = data.map(d => d.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
+      setAgents(profiles || []);
+    }
+  };
+
+  const handleAssignAgent = async (shipmentId: string, agentUserId: string) => {
+    const { error } = await supabase
+      .from('shipments')
+      .update({ assigned_agent: agentUserId })
+      .eq('id', shipmentId);
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "এজেন্ট অ্যাসাইন হয়েছে ✅" });
+      refetch();
+    }
+  };
+
+  const handleScanResult = async (data: string) => {
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.id) {
+        setSearch(parsed.id);
+        setShowScanner(false);
+        toast({ title: "QR স্ক্যান সফল", description: `ট্র্যাকিং: ${parsed.id}` });
+      }
+    } catch {
+      toast({ title: "অবৈধ QR", variant: "destructive" });
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold font-display">Manage Shipments</h1>
-        <Button variant="outline" size="sm" onClick={refetch}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => { setShowScanner(!showScanner); }}>
+            <ScanLine className="h-4 w-4 mr-2" />QR স্ক্যান
+          </Button>
+          <Button variant="outline" size="sm" onClick={refetch}>
+            <RefreshCw className="h-4 w-4 mr-2" />Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Filters */}
+      {showScanner && (
+        <div className="mb-6 max-w-sm">
+          <QRScanner onScan={handleScanResult} />
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by tracking ID, sender, receiver..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Search by tracking ID, sender, receiver..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
+          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Filter by status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {shipmentStatuses.map(s => (
-              <SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>
-            ))}
+            {shipmentStatuses.map(s => (<SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>))}
           </SelectContent>
         </Select>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+        <div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>
       ) : (
         <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
           <div className="overflow-x-auto">
@@ -115,6 +154,8 @@ export default function AdminShipments() {
                   <th className="p-4">Weight</th>
                   <th className="p-4">Status</th>
                   <th className="p-4">Update</th>
+                  <th className="p-4">Agent</th>
+                  <th className="p-4">QR</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,29 +172,51 @@ export default function AdminShipments() {
                       <div className="text-xs text-muted-foreground">{s.receiver_phone}</div>
                     </td>
                     <td className="p-4">{s.weight || '-'} kg</td>
+                    <td className="p-4"><StatusBadge status={s.status} /></td>
                     <td className="p-4">
-                      <StatusBadge status={s.status} />
-                    </td>
-                    <td className="p-4">
-                      <Select
-                        value={s.status}
-                        onValueChange={(v) => handleStatusUpdate(s.id, v, s.tracking_id)}
-                        disabled={updating === s.id}
-                      >
-                        <SelectTrigger className="w-40 h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={s.status} onValueChange={(v) => handleStatusUpdate(s.id, v, s.tracking_id)} disabled={updating === s.id}>
+                        <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {shipmentStatuses.map(status => (
-                            <SelectItem key={status} value={status}>{statusLabels[status]}</SelectItem>
-                          ))}
+                          {shipmentStatuses.map(status => (<SelectItem key={status} value={status}>{statusLabels[status]}</SelectItem>))}
                         </SelectContent>
                       </Select>
+                    </td>
+                    <td className="p-4">
+                      <Select value={(s as any).assigned_agent || "none"} onValueChange={(v) => handleAssignAgent(s.id, v)} onOpenChange={() => { if (agents.length === 0) fetchAgents(); }}>
+                        <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="অ্যাসাইন" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">কেউ নয়</SelectItem>
+                          {agents.map(a => (<SelectItem key={a.user_id} value={a.user_id}>{a.full_name || a.email}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-4">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setSelectedShipment(s)}>
+                            <QrCode className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-xs">
+                          <DialogHeader><DialogTitle>শিপমেন্ট লেবেল</DialogTitle></DialogHeader>
+                          {selectedShipment && (
+                            <QRGenerator
+                              trackingId={selectedShipment.tracking_id}
+                              senderName={selectedShipment.sender_name}
+                              receiverName={selectedShipment.receiver_name}
+                              receiverPhone={selectedShipment.receiver_phone}
+                              route={selectedShipment.route}
+                              weight={selectedShipment.weight}
+                              packages={selectedShipment.packages}
+                            />
+                          )}
+                        </DialogContent>
+                      </Dialog>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No shipments found</td></tr>
+                  <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No shipments found</td></tr>
                 )}
               </tbody>
             </table>
