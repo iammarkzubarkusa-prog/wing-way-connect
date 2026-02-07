@@ -256,6 +256,44 @@ export type Database = {
         }
         Relationships: []
       }
+      shipment_scans: {
+        Row: {
+          id: string
+          location: string | null
+          notes: string | null
+          scan_type: string
+          scanned_at: string
+          scanned_by: string
+          shipment_id: string
+        }
+        Insert: {
+          id?: string
+          location?: string | null
+          notes?: string | null
+          scan_type?: string
+          scanned_at?: string
+          scanned_by: string
+          shipment_id: string
+        }
+        Update: {
+          id?: string
+          location?: string | null
+          notes?: string | null
+          scan_type?: string
+          scanned_at?: string
+          scanned_by?: string
+          shipment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_scans_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_timeline: {
         Row: {
           description: string | null
@@ -297,6 +335,7 @@ export type Database = {
       shipments: {
         Row: {
           actual_delivery: string | null
+          assigned_agent: string | null
           base_cost: number | null
           cargo_type: string | null
           contents: string | null
@@ -328,6 +367,7 @@ export type Database = {
         }
         Insert: {
           actual_delivery?: string | null
+          assigned_agent?: string | null
           base_cost?: number | null
           cargo_type?: string | null
           contents?: string | null
@@ -359,6 +399,7 @@ export type Database = {
         }
         Update: {
           actual_delivery?: string | null
+          assigned_agent?: string | null
           base_cost?: number | null
           cargo_type?: string | null
           contents?: string | null
@@ -394,18 +435,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_approved: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_approved?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_approved?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -428,7 +472,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "agent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -556,7 +600,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "agent"],
     },
   },
 } as const
