@@ -25,6 +25,7 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminShipments from "./pages/admin/AdminShipments";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserProfile from "./pages/admin/AdminUserProfile";
 import AgentAuth from "./pages/agent/AgentAuth";
 import AgentLayout from "./pages/agent/AgentLayout";
 import AgentDashboard from "./pages/agent/AgentDashboard";
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="shipments" element={<AdminShipments />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="users" element={<AdminUsers />} />
+              <Route path="users/:userId" element={<AdminUserProfile />} />
             </Route>
             <Route path="/agent/login" element={<AgentAuth />} />
             <Route path="/agent" element={<AgentLayout />}>

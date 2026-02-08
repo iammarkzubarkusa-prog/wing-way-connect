@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAdminProfiles } from "@/hooks/useAdminData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export default function AdminUsers() {
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [tab, setTab] = useState<"users" | "agents">("users");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAgentRequests();
@@ -50,9 +52,9 @@ export default function AdminUsers() {
   const handleApprove = async (roleId: string) => {
     const { error } = await supabase.from('user_roles').update({ is_approved: true }).eq('id', roleId);
     if (error) {
-      toast({ title: "ব্যর্থ", description: error.message, variant: "destructive" });
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "এজেন্ট অ্যাপ্রুভ হয়েছে ✅" });
+      toast({ title: "Agent approved ✅" });
       fetchAgentRequests();
     }
   };
@@ -60,9 +62,9 @@ export default function AdminUsers() {
   const handleReject = async (roleId: string) => {
     const { error } = await supabase.from('user_roles').delete().eq('id', roleId);
     if (error) {
-      toast({ title: "ব্যর্থ", description: error.message, variant: "destructive" });
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "এজেন্ট রিজেক্ট হয়েছে" });
+      toast({ title: "Agent rejected" });
       fetchAgentRequests();
     }
   };
@@ -84,7 +86,7 @@ export default function AdminUsers() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold font-display">ইউজার ও এজেন্ট</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-display">Users & Agents</h1>
         <Button variant="outline" size="sm" onClick={() => { refetch(); fetchAgentRequests(); }}>
           <RefreshCw className="h-4 w-4 mr-2" /> Refresh
         </Button>
@@ -93,10 +95,10 @@ export default function AdminUsers() {
       {/* Tabs */}
       <div className="flex bg-muted rounded-xl p-1 mb-6 max-w-xs">
         <button onClick={() => setTab("users")} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${tab === "users" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
-          <User className="h-4 w-4 inline mr-1" />ইউজার
+          <User className="h-4 w-4 inline mr-1" />Users
         </button>
         <button onClick={() => setTab("agents")} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all relative ${tab === "agents" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
-          <Truck className="h-4 w-4 inline mr-1" />এজেন্ট
+          <Truck className="h-4 w-4 inline mr-1" />Agents
           {pendingAgents.length > 0 && (
             <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">{pendingAgents.length}</span>
           )}
@@ -114,7 +116,11 @@ export default function AdminUsers() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map(p => (
-                <div key={p.id} className="bg-card rounded-2xl border border-border/50 p-5 hover:shadow-md transition-all">
+                <div
+                  key={p.id}
+                  className="bg-card rounded-2xl border border-border/50 p-5 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => navigate(`/admin/users/${p.user_id}`)}
+                >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="h-5 w-5 text-primary" />
@@ -144,7 +150,7 @@ export default function AdminUsers() {
             <div className="mb-6">
               <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                অনুমোদনের অপেক্ষায় ({pendingAgents.length})
+                Pending Approval ({pendingAgents.length})
               </h2>
               <div className="grid sm:grid-cols-2 gap-4">
                 {pendingAgents.map(a => (
@@ -158,13 +164,13 @@ export default function AdminUsers() {
                         <p className="text-xs text-muted-foreground">{a.profile?.email || '-'}</p>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">ফোন: {a.profile?.phone || '-'}</p>
+                    <p className="text-sm text-muted-foreground mb-3">Phone: {a.profile?.phone || '-'}</p>
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => handleApprove(a.id)}>
-                        <CheckCircle className="h-4 w-4 mr-1" />অ্যাপ্রুভ
+                        <CheckCircle className="h-4 w-4 mr-1" />Approve
                       </Button>
                       <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleReject(a.id)}>
-                        <XCircle className="h-4 w-4 mr-1" />রিজেক্ট
+                        <XCircle className="h-4 w-4 mr-1" />Reject
                       </Button>
                     </div>
                   </div>
@@ -173,7 +179,7 @@ export default function AdminUsers() {
             </div>
           )}
 
-          <h2 className="text-lg font-bold mb-3">অ্যাপ্রুভড এজেন্ট ({approvedAgents.length})</h2>
+          <h2 className="text-lg font-bold mb-3">Approved Agents ({approvedAgents.length})</h2>
           {loadingAgents ? (
             <div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>
           ) : approvedAgents.length > 0 ? (
@@ -189,14 +195,14 @@ export default function AdminUsers() {
                       <p className="text-xs text-muted-foreground">{a.profile?.email || '-'}</p>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">ফোন: {a.profile?.phone || '-'}</p>
-                  <p className="text-xs text-muted-foreground mt-1">যোগদান: {new Date(a.created_at).toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground">Phone: {a.profile?.phone || '-'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Joined: {new Date(a.created_at).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
           ) : (
             <div className="bg-card rounded-xl border border-border/50 p-8 text-center text-muted-foreground">
-              কোনো এজেন্ট নেই
+              No agents yet
             </div>
           )}
         </>

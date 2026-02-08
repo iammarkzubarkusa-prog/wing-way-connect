@@ -87,7 +87,7 @@ export default function AdminShipments() {
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "এজেন্ট অ্যাসাইন হয়েছে ✅" });
+      toast({ title: "Agent assigned ✅" });
       refetch();
     }
   };
@@ -98,10 +98,10 @@ export default function AdminShipments() {
       if (parsed.id) {
         setSearch(parsed.id);
         setShowScanner(false);
-        toast({ title: "QR স্ক্যান সফল", description: `ট্র্যাকিং: ${parsed.id}` });
+        toast({ title: "QR Scan Successful", description: `Tracking: ${parsed.id}` });
       }
     } catch {
-      toast({ title: "অবৈধ QR", variant: "destructive" });
+      toast({ title: "Invalid QR", variant: "destructive" });
     }
   };
 
@@ -111,7 +111,7 @@ export default function AdminShipments() {
         <h1 className="text-2xl sm:text-3xl font-bold font-display">Manage Shipments</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => { setShowScanner(!showScanner); }}>
-            <ScanLine className="h-4 w-4 mr-2" />QR স্ক্যান
+            <ScanLine className="h-4 w-4 mr-2" />QR Scan
           </Button>
           <Button variant="outline" size="sm" onClick={refetch}>
             <RefreshCw className="h-4 w-4 mr-2" />Refresh
@@ -183,9 +183,9 @@ export default function AdminShipments() {
                     </td>
                     <td className="p-4">
                       <Select value={(s as any).assigned_agent || "none"} onValueChange={(v) => handleAssignAgent(s.id, v)} onOpenChange={() => { if (agents.length === 0) fetchAgents(); }}>
-                        <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="অ্যাসাইন" /></SelectTrigger>
+                        <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Assign" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">কেউ নয়</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {agents.map(a => (<SelectItem key={a.user_id} value={a.user_id}>{a.full_name || a.email}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -198,7 +198,7 @@ export default function AdminShipments() {
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-xs">
-                          <DialogHeader><DialogTitle>শিপমেন্ট লেবেল</DialogTitle></DialogHeader>
+                          <DialogHeader><DialogTitle>Shipment Label</DialogTitle></DialogHeader>
                           {selectedShipment && (
                             <QRGenerator
                               trackingId={selectedShipment.tracking_id}

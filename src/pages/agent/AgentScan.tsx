@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Package, AlertCircle } from "lucide-react";
+import { CheckCircle, Package } from "lucide-react";
 
 export default function AgentScan() {
   const { user } = useAuth();
@@ -25,7 +25,6 @@ export default function AgentScan() {
       const parsed = JSON.parse(data);
       if (parsed.id && parsed.type === 'shipment') {
         setScannedData(parsed);
-        // Fetch shipment details
         const { data: shipment } = await supabase
           .from('shipments')
           .select('*')
@@ -34,13 +33,13 @@ export default function AgentScan() {
         
         if (shipment) {
           setShipmentInfo(shipment);
-          toast({ title: "শিপমেন্ট পাওয়া গেছে! ✅", description: `ট্র্যাকিং: ${parsed.id}` });
+          toast({ title: "Shipment found! ✅", description: `Tracking: ${parsed.id}` });
         } else {
-          toast({ title: "শিপমেন্ট পাওয়া যায়নি", description: "এই QR কোডের জন্য কোনো শিপমেন্ট নেই", variant: "destructive" });
+          toast({ title: "Shipment not found", description: "No shipment found for this QR code", variant: "destructive" });
         }
       }
     } catch {
-      toast({ title: "অবৈধ QR কোড", description: "এই QR কোডটি WACC শিপমেন্টের নয়", variant: "destructive" });
+      toast({ title: "Invalid QR code", description: "This QR code is not a WACC shipment", variant: "destructive" });
     }
   };
 
@@ -58,15 +57,13 @@ export default function AgentScan() {
 
       if (error) throw error;
 
-      // If delivery scan, update shipment status
       if (scanType === 'delivery') {
         await supabase.from('shipments').update({ status: 'delivered', actual_delivery: new Date().toISOString() }).eq('id', shipmentInfo.id);
       }
 
-      // Add timeline entry
       const scanTypeLabels: Record<string, string> = {
-        pickup: "পিকআপ করা হয়েছে", handover: "হস্তান্তর করা হয়েছে",
-        delivery: "ডেলিভারি সম্পন্ন", checkpoint: "চেকপয়েন্ট পার করেছে"
+        pickup: "Picked up", handover: "Handed over",
+        delivery: "Delivery completed", checkpoint: "Checkpoint passed"
       };
 
       await supabase.from('shipment_timeline').insert({
@@ -78,9 +75,9 @@ export default function AgentScan() {
       });
 
       setScanSuccess(true);
-      toast({ title: "স্ক্যান সফল! ✅", description: scanTypeLabels[scanType] });
+      toast({ title: "Scan successful! ✅", description: scanTypeLabels[scanType] });
     } catch (e: any) {
-      toast({ title: "স্ক্যান ব্যর্থ", description: e.message, variant: "destructive" });
+      toast({ title: "Scan failed", description: e.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -101,21 +98,19 @@ export default function AgentScan() {
         <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="h-10 w-10 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold font-display mb-2">স্ক্যান সম্পন্ন!</h2>
-        <p className="text-muted-foreground mb-6">ট্র্যাকিং: {scannedData?.id}</p>
-        <Button onClick={resetScan} className="bg-cta hover:bg-cta/90 text-cta-foreground">আরেকটি স্ক্যান করুন</Button>
+        <h2 className="text-2xl font-bold font-display mb-2">Scan Complete!</h2>
+        <p className="text-muted-foreground mb-6">Tracking: {scannedData?.id}</p>
+        <Button onClick={resetScan} className="bg-cta hover:bg-cta/90 text-cta-foreground">Scan Another</Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-md mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold font-display mb-6">QR স্ক্যান</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold font-display mb-6">QR Scan</h1>
 
       {!shipmentInfo ? (
-        <div>
-          <QRScanner onScan={handleScan} onError={(err) => toast({ title: "ক্যামেরা সমস্যা", description: err, variant: "destructive" })} />
-        </div>
+        <QRScanner onScan={handleScan} onError={(err) => toast({ title: "Camera error", description: err, variant: "destructive" })} />
       ) : (
         <div className="space-y-4">
           <div className="bg-card rounded-2xl border border-border/50 p-5">
@@ -127,38 +122,38 @@ export default function AgentScan() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-muted-foreground">প্রেরক</p><p className="font-medium">{shipmentInfo.sender_name}</p></div>
-              <div><p className="text-muted-foreground">প্রাপক</p><p className="font-medium">{shipmentInfo.receiver_name}</p></div>
-              <div><p className="text-muted-foreground">ফোন</p><p className="font-medium">{shipmentInfo.receiver_phone}</p></div>
-              <div><p className="text-muted-foreground">ওজন</p><p className="font-medium">{shipmentInfo.weight || '-'} kg</p></div>
+              <div><p className="text-muted-foreground">Sender</p><p className="font-medium">{shipmentInfo.sender_name}</p></div>
+              <div><p className="text-muted-foreground">Receiver</p><p className="font-medium">{shipmentInfo.receiver_name}</p></div>
+              <div><p className="text-muted-foreground">Phone</p><p className="font-medium">{shipmentInfo.receiver_phone}</p></div>
+              <div><p className="text-muted-foreground">Weight</p><p className="font-medium">{shipmentInfo.weight || '-'} kg</p></div>
             </div>
           </div>
 
           <div className="space-y-3">
             <div>
-              <Label>স্ক্যান ধরন</Label>
+              <Label>Scan Type</Label>
               <Select value={scanType} onValueChange={setScanType}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pickup">পিকআপ</SelectItem>
-                  <SelectItem value="handover">হ্যান্ডওভার</SelectItem>
-                  <SelectItem value="checkpoint">চেকপয়েন্ট</SelectItem>
-                  <SelectItem value="delivery">ডেলিভারি (সম্পন্ন)</SelectItem>
+                  <SelectItem value="pickup">Pickup</SelectItem>
+                  <SelectItem value="handover">Handover</SelectItem>
+                  <SelectItem value="checkpoint">Checkpoint</SelectItem>
+                  <SelectItem value="delivery">Delivery (Complete)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>লোকেশন</Label>
-              <Input placeholder="যেমন: ঢাকা অফিস" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1.5" />
+              <Label>Location</Label>
+              <Input placeholder="e.g. Dhaka Office" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1.5" />
             </div>
             <div>
-              <Label>নোট (ঐচ্ছিক)</Label>
-              <Input placeholder="কিছু মন্তব্য..." value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1.5" />
+              <Label>Notes (optional)</Label>
+              <Input placeholder="Any comments..." value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1.5" />
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={resetScan}>বাতিল</Button>
+              <Button variant="outline" className="flex-1" onClick={resetScan}>Cancel</Button>
               <Button className="flex-1 bg-cta hover:bg-cta/90 text-cta-foreground" onClick={handleSubmitScan} disabled={submitting}>
-                {submitting ? "সেভ হচ্ছে..." : "কনফার্ম করুন"}
+                {submitting ? "Saving..." : "Confirm"}
               </Button>
             </div>
           </div>
