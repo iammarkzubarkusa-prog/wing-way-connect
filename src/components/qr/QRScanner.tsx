@@ -25,11 +25,11 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
           onScan(decodedText);
           stopScanning();
         },
-        () => {} // ignore errors during scanning
+        () => {}
       );
       setIsScanning(true);
     } catch (err: any) {
-      onError?.(err.message || "ক্যামেরা অ্যাক্সেস করা যাচ্ছে না");
+      onError?.(err.message || "Cannot access camera");
     }
   };
 
@@ -55,7 +55,7 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
         className="w-full rounded-xl overflow-hidden bg-muted min-h-[250px] flex items-center justify-center"
       >
         {!isScanning && (
-          <p className="text-muted-foreground text-sm">ক্যামেরা বন্ধ আছে</p>
+          <p className="text-muted-foreground text-sm">Camera off</p>
         )}
       </div>
       <Button
@@ -64,9 +64,9 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
         onClick={isScanning ? stopScanning : startScanning}
       >
         {isScanning ? (
-          <><CameraOff className="h-4 w-4 mr-2" /> স্ক্যানার বন্ধ করুন</>
+          <><CameraOff className="h-4 w-4 mr-2" /> Stop Scanner</>
         ) : (
-          <><Camera className="h-4 w-4 mr-2" /> QR স্ক্যান করুন</>
+          <><Camera className="h-4 w-4 mr-2" /> Scan QR Code</>
         )}
       </Button>
     </div>
